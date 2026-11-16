@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>手漉き和紙 パルプ繊維シートモールド工程ガイド</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    input[type=range] { accent-color: #15803d; }
+    .step-header { cursor: pointer; user-select: none; }
+    .step-body { transition: max-height 0.3s ease; overflow: hidden; }
+    .bar-fill { transition: width 0.4s ease; }
+  </style>
+</head>
+<body class="bg-green-50 min-h-screen">
+  <header class="bg-green-700 text-white py-4 px-4 shadow">
+    <h1 class="text-xl font-bold">🌿 手漉き和紙 工程ガイド</h1>
+    <p class="text-sm mt-1 opacity-90">原料・叩解度設定 → 坪量・工程チェックリスト自動生成</p>
+  </header>
+
+  <div class="max-w-4xl mx-auto px-4 py-6 grid md:grid-cols-2 gap-6">
+    <!-- Settings Panel -->
+    <section class="bg-white rounded-xl shadow p-5 flex flex-col gap-5">
+      <h2 class="text-lg font-bold text-green-800 border-b border-green-200 pb-2">原料設定</h2>
+
+      <div>
+        <div class="flex justify-between mb-1">
+          <label for="kozo-slider" class="font-medium text-gray-700">楮（こうぞ）</label>
+          <span id="kozo-val" class="text-green-700 font-bold">60%</span>
+        </div>
+        <input type="range" id="kozo-slider" min="0" max="100" value="60" class="w-full" aria-label="楮の比率" />
+      </div>
+
+      <div>
+        <div class="flex justify-between mb-1">
+          <label for="mitsumata-slider" class="font-medium text-gray-700">三椏（みつまた）</label>
+          <span id="mitsumata-val" class="text-green-700 font-bold">30%</span>
+        </div>
+        <input type="range" id="mitsumata-slider" min="0" max="100" value="30" class="w-full" aria-label="三椏の比率" />
+      </div>
+
+      <div>
+        <div class="flex justify-between mb-1">
+          <label for="hemp-slider" class="font-medium text-gray-700">麻（あさ）</label>
+          <span id="hemp-val" class="text-green-700 font-bold">10%</span>
+        </div>
+        <input type="range" id="hemp-slider" min="0" max="100" value="10" class="w-full" aria-label="麻の比率" />
+      </div>
+
+      <div id="ratio-warning" class="hidden text-red-600 text-sm font-medium bg-red-50 rounded px-3 py-2">合計が100%を超えています。自動正規化されます。</div>
+
+      <div class="bg-green-50 rounded-lg p-3">
+        <div class="text-xs text-gray-500 mb-2">配合比率</div>
+        <div class="flex h-5 rounded overflow-hidden">
+          <div id="bar-kozo" class="bar-fill bg-amber-600" style="width:60%"></div>
+          <div id="bar-mitsumata" class="bar-fill bg-yellow-400" style="width:30%"></div>
+          <div id="bar-hemp" class="bar-fill bg-green-400" style="width:10%"></div>
+        </div>
+        <div class="flex gap-4 mt-1 text-xs text-gray-600">
+          <span><span class="inline-block w-3 h-3 bg-amber-600 rounded-sm mr-1"></span>楮</span>
+          <span><span class="inline-block w-3 h-3 bg-yellow-400 rounded-sm mr-1"></span>三椏</span>
+          <span><span class="inline-block w-3 h-3 bg-green-400 rounded-sm mr-1"></span>麻</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex justify-between mb-1">
+          <label for="beating-slider" class="font-medium text-gray-700">叩解度</label>
+          <span id="beating-val" class="text-green-700 font-bold">50%</span>
+        </div>
+        <input type="range" id="beating-slider" min="0" max="100" value="50" class="w-full" aria-label="叩解度" />
+        <div class="flex justify-between text-xs text-gray-400 mt-1"><span>粗い</span><span>細かい</span></div>
+      </div>
+    </section>
+
+    <!-- Results Panel -->
+    <section class="flex flex-col gap-4">
+      <div class="bg-white rounded-xl shadow p-5">
+        <h2 class="text-lg font-bold text-green-800 border-b border-green-200 pb-2 mb-4">推定結果</h2>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-green-50 rounded-lg p-3 text-center">
+            <div class="text-2xl font-bold text-green-700" id="res-weight">42</div>
+            <div class="text-xs text-gray-500 mt-1">坪量 (g/m²)</div>
+          </div>
+          <div class="bg-blue-50 rounded-lg p-3 text-center">
+            <div class="text-2xl font-bold text-blue-700" id="res-temp">18°C</div>
+            <div class="text-xs text-gray-500 mt-1">推奨水温</div>
+          </div>
+          <div class="bg-orange-50 rounded-lg p-3 text-center">
+            <div class="text-2xl font-bold text-orange-700" id="res-dry">12h</div>
+            <div class="text-xs text-gray-500 mt-1">乾燥時間目安</div>
+          </div>
+          <div class="bg-purple-50 rounded-lg p-3 text-center">
+            <div class="text-lg font-bold text-purple-700" id="res-transparency">中程度</div>
+            <div class="text-xs text-gray-500 mt-1">透明度</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Tracking -->
+      <div class="bg-white rounded-xl shadow p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-bold text-green-800">工程チェックリスト</h2>
+          <button id="reset-btn" class="text-xs text-gray-400 hover:text-red-500 transition" aria-label="チェックリストをリセット">リセット</button>
+        </div>
+        <div id="steps-list" class="flex flex-col gap-2"></div>
+        <div class="mt-3">
+          <div class="flex justify-between text-sm text-gray-500 mb-1">
+            <span>進捗</span>
+            <span id="progress-text">0 / 5</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2">
+            <div id="progress-bar" class="bg-green-500 h-2 rounded-full transition-all" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+const STEPS = [
+  {
+    id: 'cook', label: '1. 原料の煮熟',
+    tips: '楮・三椏は炭酸ナトリウム（ソーダ灰）または木灰汁で煮熟します。楮は2〜3時間、三椏は1〜2時間が目安。繊維が柔らかくなるまで十分に煮ます。'
+  },
+  {
+    id: 'beat', label: '2. 叩解（こうかい）',
+    tips: '煮熟した繊維を流水で洗い、木槌または叩解機でよく叩きます。叩解度が高いほど紙は薄く均一になります。冷水（15〜20℃）で行うと繊維がほぐれやすいです。'
+  },
+  {
+    id: 'form', label: '3. 漉き（すき）',
+    tips: '漉き槽に繊維（0.1〜0.3%濃度）とトロロアオイ（ネリ）を加えます。漉き桁を前後左右に揺り動かし、均一に繊維を絡ませます。'
+  },
+  {
+    id: 'dry', label: '4. 乾燥',
+    tips: '漉いた紙を板（杉板・松板）に刷毛で貼り付け、自然乾燥または乾燥室で乾かします。急激な乾燥は反りの原因になるため注意が必要です。'
+  },
+  {
+    id: 'finish', label: '5. 仕上げ',
+    tips: '乾燥後、板から剥がして仕上げます。必要に応じてドーサ引き（にじみ止め）や打紙加工を行います。'
+  }
+];
+
+let checks = JSON.parse(localStorage.getItem('washi-checks') || '{}');
+
+function saveChecks() {
+  localStorage.setItem('washi-checks', JSON.stringify(checks));
+}
+
+function renderSteps() {
+  const container = document.getElementById('steps-list');
+  container.innerHTML = '';
+  let done = 0;
+  STEPS.forEach(step => {
+    const checked = !!checks[step.id];
+    if (checked) done++;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'border border-gray-200 rounded-lg overflow-hidden';
+
+    const header = document.createElement('div');
+    header.className = 'step-header flex items-center gap-3 px-3 py-2 bg-gray-50 hover:bg-green-50 transition';
+    header.setAttribute('role', 'button');
+    header.setAttribute('aria-expanded', 'false');
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = checked;
+    cb.className = 'w-4 h-4 accent-green-600 flex-shrink-0';
+    cb.setAttribute('aria-label', step.label + 'の完了チェック');
+
+    const labelEl = document.createElement('span');
+    labelEl.className = 'flex-1 text-sm font-medium ' + (checked ? 'line-through text-gray-400' : 'text-gray-800');
+    labelEl.textContent = step.label;
+
+    const arrow = document.createElement('span');
+    arrow.className = 'text-gray-400 text-xs';
+    arrow.textContent = '▼ ヒント';
+
+    header.appendChild(cb);
+    header.appendChild(labelEl);
+    header.appendChild(arrow);
+
+    const body = document.createElement('div');
+    body.className = 'step-body max-h-0';
+
+    const bodyInner = document.createElement('div');
+    bodyInner.className = 'px-3 py-2 text-sm text-gray-600 bg-white border-t border-gray-100';
+    bodyInner.textContent = step.tips;
+
+    body.appendChild(bodyInner);
+    wrapper.appendChild(header);
+    wrapper.appendChild(body);
+    container.appendChild(wrapper);
+
+    cb.addEventListener('change', (e) => {
+      e.stopPropagation();
+      checks[step.id] = e.target.checked;
+      saveChecks();
+      renderSteps();
+      updateProgress();
+    });
+
+    header.addEventListener('click', (e) => {
+      if (e.target === cb) return;
+      const isOpen = body.style.maxHeight && body.style.maxHeight !== '0px';
+      body.style.maxHeight = isOpen ? '0px' : '200px';
+      arrow.textContent = isOpen ? '▼ ヒント' : '▲ 閉じる';
+      header.setAttribute('aria-expanded', String(!isOpen));
+    });
+  });
+  updateProgress(done);
+}
+
+function updateProgress(done) {
+  if (done === undefined) {
+    done = STEPS.filter(s => checks[s.id]).length;
+  }
+  const pct = (done / STEPS.length) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `${done} / ${STEPS.length}`;
+}
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  checks = {};
+  saveChecks();
+  renderSteps();
+});
+
+// ---- Calculations ----
+function getNormalized() {
+  let k = parseInt(document.getElementById('kozo-slider').value);
+  let m = parseInt(document.getElementById('mitsumata-slider').value);
+  let h = parseInt(document.getElementById('hemp-slider').value);
+  const total = k + m + h;
+  if (total === 0) return { k: 33, m: 33, h: 34 };
+  return { k: k/total*100, m: m/total*100, h: h/total*100, total };
+}
+
+function computeResults() {
+  const beating = parseInt(document.getElementById('beating-slider').value);
+  const { k, m, h, total } = getNormalized();
+
+  const warn = document.getElementById('ratio-warning');
+  warn.classList.toggle('hidden', !total || total <= 100);
+
+  document.getElementById('kozo-val').textContent = Math.round(k) + '%';
+  document.getElementById('mitsumata-val').textContent = Math.round(m) + '%';
+  document.getElementById('hemp-val').textContent = Math.round(h) + '%';
+  document.getElementById('beating-val').textContent = beating + '%';
+
+  document.getElementById('bar-kozo').style.width = k + '%';
+  document.getElementById('bar-mitsumata').style.width = m + '%';
+  document.getElementById('bar-hemp').style.width = h + '%';
+
+  // Basis weight: hemp makes heavier, high beating makes lighter
+  const baseWeight = 30 + (k * 0.3) + (m * 0.2) + (h * 0.5);
+  const beatFactor = 1 - beating * 0.003;
+  const weight = Math.round(baseWeight * beatFactor);
+  document.getElementById('res-weight').textContent = weight;
+
+  // Water temp: hemp needs warmer
+  const temp = Math.round(15 + h * 0.1);
+  document.getElementById('res-temp').textContent = temp + '°C';
+
+  // Drying time: heavier = longer
+  const dryHours = Math.round(8 + weight * 0.15);
+  document.getElementById('res-dry').textContent = dryHours + 'h';
+
+  // Transparency: high beating + mitsumata = more transparent
+  const transScore = beating * 0.4 + m * 0.3 - h * 0.2;
+  let transLabel = '不透明';
+  if (transScore > 60) transLabel = '高い';
+  else if (transScore > 35) transLabel = '中程度';
+  else if (transScore > 15) transLabel = 'やや透明';
+  document.getElementById('res-transparency').textContent = transLabel;
+}
+
+['kozo-slider','mitsumata-slider','hemp-slider','beating-slider'].forEach(id => {
+  document.getElementById(id).addEventListener('input', computeResults);
+});
+
+computeResults();
+renderSteps();
+</script>
+</body>
+</html>
